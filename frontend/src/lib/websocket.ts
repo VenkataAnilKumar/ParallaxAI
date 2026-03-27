@@ -47,6 +47,10 @@ export class ResearchSocket {
         const event: WSEvent = JSON.parse(ev.data);
         const handlers = this.handlers.get(event.event) ?? [];
         handlers.forEach((h) => h(event));
+        // Stop reconnecting once terminal events are received
+        if (event.event === "task.completed" || event.event === "task.failed") {
+          this.maxReconnects = 0;
+        }
       } catch {
         // ignore malformed messages
       }

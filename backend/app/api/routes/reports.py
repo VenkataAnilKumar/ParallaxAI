@@ -1,9 +1,9 @@
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -93,9 +93,9 @@ async def share_report(
 @router.get("/{report_id}/export")
 async def export_report(
     report_id: uuid.UUID,
-    format: str = "markdown",
-    current_user: CurrentUser = ...,  # type: ignore[assignment]
-    db: DB = ...,  # type: ignore[assignment]
+    current_user: CurrentUser,
+    db: DB,
+    format: Literal["markdown", "pdf"] = Query("markdown"),
 ) -> Response:
     report = await _get_report_for_user(report_id, current_user, db)
 

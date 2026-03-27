@@ -1,13 +1,19 @@
 """Celery tasks for parallel research agent execution."""
 
-import asyncio
 import json
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 import structlog
-from celery import chord, group
+
+# Claude API pricing (per token, as of 2025)
+# Adjust if Anthropic updates pricing
+COST_PER_TOKEN = {
+    "claude-opus-4-6": {"input": 0.000015, "output": 0.000075},
+    "claude-sonnet-4-6": {"input": 0.000003, "output": 0.000015},
+}
+BLENDED_COST_PER_TOKEN = 0.000012  # weighted average across opus/sonnet usage
 
 from app.agents.base import AgentInput
 from app.agents.orchestrator import OrchestratorAgent
@@ -44,20 +50,22 @@ def _update_task_status(task_id: str, status: str, **kwargs) -> None:
     from sqlalchemy import create_engine
 
     engine = create_engine(settings.DATABASE_URL)
-    with engine.begin() as conn:
-        updates = {"status": status, "updated_at": datetime.now(timezone.utc), **kwargs}
-        conn.execute(
-            sa.text(
-                "UPDATE research_tasks SET status=:status, updated_at=:updated_at "
-                + (", completed_at=:completed_at" if "completed_at" in kwargs else "")
-                + (", error_message=:error_message" if "error_message" in kwargs else "")
-                + (", tokens_used=:tokens_used" if "tokens_used" in kwargs else "")
-                + (", cost_usd=:cost_usd" if "cost_usd" in kwargs else "")
-                + " WHERE id=:id"
-            ),
-            {**updates, "id": task_id},
-        )
-    engine.dispose()
+    try:
+        with engine.begin() as conn:
+            updates = {"status": status, "updated_at": datetime.now(timezone.utc), **kwargs}
+            conn.execute(
+                sa.text(
+                    "UPDATE research_tasks SET status=:status, updated_at=:updated_at "
+                    + (", completed_at=:completed_at" if "completed_at" in kwargs else "")
+                    + (", error_message=:error_message" if "error_message" in kwargs else "")
+                    + (", tokens_used=:tokens_used" if "tokens_used" in kwargs else "")
+                    + (", cost_usd=:cost_usd" if "cost_usd" in kwargs else "")
+                    + " WHERE id=:id"
+                ),
+                {**updates, "id": task_id},
+            )
+    finally:
+        engine.dispose()
 
 
 def _upsert_agent_run(task_id: str, agent_type: str, status: str, **kwargs) -> str:
@@ -67,16 +75,18 @@ def _upsert_agent_run(task_id: str, agent_type: str, status: str, **kwargs) -> s
 
     run_id = str(uuid.uuid4())
     engine = create_engine(settings.DATABASE_URL)
-    with engine.begin() as conn:
-        conn.execute(
-            sa.text(
-                "INSERT INTO agent_runs (id, task_id, agent_type, status, created_at, updated_at) "
-                "VALUES (:id, :task_id, :agent_type, :status, now(), now()) "
-                "ON CONFLICT DO NOTHING"
-            ),
-            {"id": run_id, "task_id": task_id, "agent_type": agent_type, "status": status},
-        )
-    engine.dispose()
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                sa.text(
+                    "INSERT INTO agent_runs (id, task_id, agent_type, status, created_at, updated_at) "
+                    "VALUES (:id, :task_id, :agent_type, :status, now(), now()) "
+                    "ON CONFLICT DO NOTHING"
+                ),
+                {"id": run_id, "task_id": task_id, "agent_type": agent_type, "status": status},
+            )
+    finally:
+        engine.dispose()
     return run_id
 
 
@@ -200,7 +210,7 @@ def run_research_task(self, task_id: str) -> dict:
         _save_report(task_id, query, synthesis_output)
 
         # Update task as completed
-        cost_usd = total_tokens * 0.000015  # rough blended cost estimate
+        cost_usd = total_tokens * BLENDED_COST_PER_TOKEN
         _update_task_status(
             task_id, "completed",
             completed_at=datetime.now(timezone.utc),

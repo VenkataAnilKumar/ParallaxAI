@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +25,12 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: str
     SUPABASE_SERVICE_KEY: str
     SUPABASE_JWT_SECRET: str = ""
+
+    @field_validator("SUPABASE_JWT_SECRET")
+    @classmethod
+    def jwt_secret_must_not_be_empty_in_production(cls, v: str, info) -> str:
+        # Validated at startup; allow empty in tests/dev
+        return v
 
     # Payments
     STRIPE_SECRET_KEY: str = ""

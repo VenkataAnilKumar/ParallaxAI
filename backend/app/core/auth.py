@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -44,13 +45,19 @@ async def get_current_user(
 
     if user is None:
         # Auto-provision user from Supabase token
-        user = User(
-            id=uuid.UUID(user_id),
-            email=payload.get("email", ""),
-            full_name=payload.get("user_metadata", {}).get("full_name"),
-        )
-        db.add(user)
-        await db.flush()
+        # Use try/except to handle race condition on concurrent first logins
+        try:
+            user = User(
+                id=uuid.UUID(user_id),
+                email=payload.get("email", ""),
+                full_name=payload.get("user_metadata", {}).get("full_name"),
+            )
+            db.add(user)
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+            user = result.scalar_one()
 
     return user
 

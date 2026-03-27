@@ -14,7 +14,7 @@ interface Props {
 
 export function ReportViewer({ taskId }: Props) {
   const { activeReport, setActiveReport } = useResearchStore();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
@@ -28,9 +28,14 @@ export function ReportViewer({ taskId }: Props) {
 
       try {
         const report = await reports.getByTask(token, taskId);
-        if (mounted) setActiveReport(report);
+        if (mounted) {
+          setActiveReport(report);
+          setLoading(false);
+          // Stop polling once report is loaded
+          clearInterval(interval);
+        }
       } catch {
-        // Report not ready yet — poll
+        // Report not ready yet — keep polling
       }
     }
 
@@ -73,8 +78,12 @@ export function ReportViewer({ taskId }: Props) {
 
   if (!activeReport) {
     return (
-      <div className="card text-center text-gray-500 py-12">
-        {loading ? "Generating report..." : "Report will appear here when research completes."}
+      <div className="card text-center text-gray-500 py-12 space-y-2">
+        <div className="flex items-center justify-center gap-2">
+          <span className="size-4 rounded-full border-2 border-brand-400 border-t-transparent animate-spin" />
+          <span>Generating report...</span>
+        </div>
+        <p className="text-xs text-gray-600">This may take a few minutes</p>
       </div>
     );
   }

@@ -13,13 +13,15 @@ interface Props {
 }
 
 export function AgentProgress({ taskId }: Props) {
-  const { agentStatuses, handleWSEvent, updateTask } = useResearchStore();
+  const { agentStatuses, handleWSEvent, updateTask, setActiveTask } = useResearchStore();
   const socketRef = useRef<ResearchSocket | null>(null);
   const [taskStatus, setTaskStatus] = useState<string>("pending");
   const [query, setQuery] = useState<string>("");
 
   useEffect(() => {
     let mounted = true;
+    // Reset agent statuses for this task on mount
+    setActiveTask(taskId);
 
     async function init() {
       const token = await getToken();
