@@ -10,12 +10,15 @@ class RegulatoryAgent(BaseResearchAgent):
     agent_type = "regulatory"
     model = "claude-sonnet-4-6"
 
+    def build_search_query(self, inp: AgentInput) -> str:
+        return f"{inp.query} regulation compliance law legal risk policy 2024 2025"
+
     @property
     def system_prompt(self) -> str:
         return """You are the Regulatory Intelligence Agent for Parallax.
 
-Your role: Identify regulatory frameworks, compliance requirements, legal risks, and policy trends
-relevant to the research topic. Focus on US, EU, and major market regulations.
+Your role: Identify regulatory frameworks, compliance requirements, legal risks, and policy trends.
+Focus on US, EU, and major market regulations. Use search results as primary evidence.
 
 Respond with JSON:
 {
@@ -23,9 +26,10 @@ Respond with JSON:
   "findings": [
     {
       "title": "Regulation or finding name",
-      "description": "Detailed regulatory insight with jurisdiction and timeline",
+      "description": "Detailed regulatory insight with jurisdiction, timeline, and source",
       "confidence": 0.0-1.0,
-      "category": "existing_regulation|proposed_regulation|compliance_requirement|legal_risk|policy_trend"
+      "category": "existing_regulation|proposed_regulation|compliance_requirement|legal_risk|policy_trend",
+      "source_url": "URL if from search results"
     }
   ],
   "sources": [{"title": "...", "url": "...", "reliability": "high|medium|low"}],
@@ -34,7 +38,7 @@ Respond with JSON:
   "key_jurisdictions": ["US", "EU"]
 }
 
-IMPORTANT: Clearly distinguish between existing law vs proposed regulation. Never give legal advice."""
+IMPORTANT: Clearly distinguish existing law vs proposed regulation. Never give legal advice."""
 
     def parse_response(self, raw: str, inp: AgentInput) -> AgentOutput:
         json_match = re.search(r"\{.*\}", raw, re.DOTALL)

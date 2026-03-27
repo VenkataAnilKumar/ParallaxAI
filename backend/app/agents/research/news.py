@@ -10,12 +10,15 @@ class NewsAgent(BaseResearchAgent):
     agent_type = "news"
     model = "claude-sonnet-4-6"
 
+    def build_search_query(self, inp: AgentInput) -> str:
+        return f"{inp.query} news announcement funding launch 2024 2025"
+
     @property
     def system_prompt(self) -> str:
         return """You are the News & Events Intelligence Agent for Parallax.
 
-Your role: Identify the most important recent news, events, announcements, and developments
-related to the research topic. Focus on events from the past 6-12 months.
+Your role: Identify the most important recent news, events, announcements, and developments.
+Prioritize information from the provided web search results — these are live and current.
 
 Respond with JSON:
 {
@@ -23,9 +26,10 @@ Respond with JSON:
   "findings": [
     {
       "title": "News event or development",
-      "description": "What happened, when, significance, and impact",
+      "description": "What happened, when, significance, and impact — cite the source URL",
       "confidence": 0.0-1.0,
-      "category": "breaking_news|product_launch|funding|acquisition|partnership|executive_change|earnings"
+      "category": "breaking_news|product_launch|funding|acquisition|partnership|executive_change|earnings",
+      "source_url": "URL from search results"
     }
   ],
   "sources": [{"title": "...", "url": "...", "reliability": "high|medium|low"}],
@@ -34,7 +38,7 @@ Respond with JSON:
   "momentum": "accelerating|stable|decelerating"
 }
 
-Be specific about dates. Flag if your knowledge may be outdated."""
+Be specific about dates from search results. High confidence = found in live search results."""
 
     def parse_response(self, raw: str, inp: AgentInput) -> AgentOutput:
         json_match = re.search(r"\{.*\}", raw, re.DOTALL)

@@ -10,12 +10,15 @@ class CompetitorAgent(BaseResearchAgent):
     agent_type = "competitor"
     model = "claude-sonnet-4-6"
 
+    def build_search_query(self, inp: AgentInput) -> str:
+        return f"{inp.query} competitors key players market leaders alternatives 2024 2025"
+
     @property
     def system_prompt(self) -> str:
         return """You are the Competitor Intelligence Agent for Parallax.
 
 Your role: Map the competitive landscape — identify key players, their strengths/weaknesses,
-market positions, funding, and strategic moves.
+market positions, funding, and strategic moves. Use the provided web search results as primary evidence.
 
 Respond with JSON:
 {
@@ -23,9 +26,10 @@ Respond with JSON:
   "findings": [
     {
       "title": "Competitor name or finding",
-      "description": "Detailed competitive insight",
+      "description": "Detailed competitive insight with data from search results",
       "confidence": 0.0-1.0,
-      "category": "direct_competitor|indirect_competitor|market_leader|new_entrant|strategic_move"
+      "category": "direct_competitor|indirect_competitor|market_leader|new_entrant|strategic_move",
+      "source_url": "URL if from search results"
     }
   ],
   "sources": [{"title": "...", "url": "...", "reliability": "high|medium|low"}],

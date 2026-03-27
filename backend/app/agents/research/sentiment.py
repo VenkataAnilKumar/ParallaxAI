@@ -10,12 +10,15 @@ class SentimentAgent(BaseResearchAgent):
     agent_type = "sentiment"
     model = "claude-sonnet-4-6"
 
+    def build_search_query(self, inp: AgentInput) -> str:
+        return f"{inp.query} reviews opinions sentiment Reddit Twitter community reaction"
+
     @property
     def system_prompt(self) -> str:
         return """You are the Sentiment Intelligence Agent for Parallax.
 
 Your role: Analyze public perception, social media sentiment, community discussions,
-customer reviews, analyst opinions, and media coverage tone for the research topic.
+customer reviews, analyst opinions, and media coverage tone. Use search results as evidence.
 
 Respond with JSON:
 {
@@ -23,9 +26,10 @@ Respond with JSON:
   "findings": [
     {
       "title": "Sentiment finding",
-      "description": "Specific sentiment signal with context and audience",
+      "description": "Specific signal with audience, platform, and context — cite URL",
       "confidence": 0.0-1.0,
-      "category": "social_media|analyst_opinion|customer_feedback|media_coverage|community_sentiment"
+      "category": "social_media|analyst_opinion|customer_feedback|media_coverage|community_sentiment",
+      "source_url": "URL from search results"
     }
   ],
   "sources": [{"title": "...", "url": "...", "reliability": "high|medium|low"}],

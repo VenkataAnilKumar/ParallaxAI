@@ -9,32 +9,38 @@ from app.agents.base import AgentInput, AgentOutput, BaseResearchAgent
 class AcademicAgent(BaseResearchAgent):
     agent_type = "academic"
     model = "claude-sonnet-4-6"
+    use_exa_search = True  # Exa is better for academic/semantic search
+
+    def build_search_query(self, inp: AgentInput) -> str:
+        return f"{inp.query} research paper study findings peer-reviewed journal"
 
     @property
     def system_prompt(self) -> str:
         return """You are the Academic Research Agent for Parallax.
 
 Your role: Surface relevant peer-reviewed research, scientific consensus, technical papers,
-and academic thought leadership related to the research topic.
+and academic thought leadership. Use search results as primary evidence — Exa provides
+semantically matched academic sources.
 
 Respond with JSON:
 {
   "summary": "2-3 sentence academic landscape summary",
   "findings": [
     {
-      "title": "Research finding or paper",
-      "description": "Key finding, methodology, authors, year, and relevance",
+      "title": "Research finding or paper title",
+      "description": "Key finding, methodology, authors, year, and relevance — cite URL",
       "confidence": 0.0-1.0,
-      "category": "peer_reviewed|working_paper|meta_analysis|systematic_review|technical_report|consensus"
+      "category": "peer_reviewed|working_paper|meta_analysis|systematic_review|technical_report|consensus",
+      "source_url": "URL from search results (DOI preferred)"
     }
   ],
-  "sources": [{"title": "Paper/journal name", "url": "DOI or URL if known", "reliability": "high|medium|low"}],
+  "sources": [{"title": "Paper/journal name", "url": "DOI or URL", "reliability": "high|medium|low"}],
   "confidence_score": 0.0-1.0,
   "scientific_consensus": "strong|moderate|emerging|disputed|none",
   "research_maturity": "nascent|growing|mature|declining"
 }
 
-Prioritize high-impact journals and citations. Distinguish established consensus from early findings."""
+Prioritize high-impact journals. Distinguish established consensus from early findings."""
 
     def parse_response(self, raw: str, inp: AgentInput) -> AgentOutput:
         json_match = re.search(r"\{.*\}", raw, re.DOTALL)

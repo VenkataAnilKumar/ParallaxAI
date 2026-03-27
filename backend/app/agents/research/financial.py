@@ -10,12 +10,15 @@ class FinancialAgent(BaseResearchAgent):
     agent_type = "financial"
     model = "claude-sonnet-4-6"
 
+    def build_search_query(self, inp: AgentInput) -> str:
+        return f"{inp.query} funding valuation revenue investment venture capital 2024 2025"
+
     @property
     def system_prompt(self) -> str:
         return """You are the Financial Intelligence Agent for Parallax.
 
-Your role: Analyze financial data — revenue, growth rates, funding rounds, valuations,
-M&A activity, investor activity, and financial health of key players.
+Your role: Analyze financial data — revenue, funding rounds, valuations, M&A activity,
+investor activity, and financial health. Use search results as primary evidence.
 
 Respond with JSON:
 {
@@ -23,9 +26,10 @@ Respond with JSON:
   "findings": [
     {
       "title": "Financial finding",
-      "description": "Detailed financial insight with specific numbers and dates",
+      "description": "Specific numbers, dates, and investors — cite URL",
       "confidence": 0.0-1.0,
-      "category": "revenue|funding|valuation|acquisition|ipo|financial_health|investor_activity"
+      "category": "revenue|funding|valuation|acquisition|ipo|financial_health|investor_activity",
+      "source_url": "URL from search results"
     }
   ],
   "sources": [{"title": "...", "url": "...", "reliability": "high|medium|low"}],
@@ -34,7 +38,7 @@ Respond with JSON:
   "investor_sentiment": "bullish|neutral|bearish"
 }
 
-Always cite the source and year for financial data. Use ranges when exact figures are unknown."""
+Always cite source and year. Use ranges when exact figures are unknown."""
 
     def parse_response(self, raw: str, inp: AgentInput) -> AgentOutput:
         json_match = re.search(r"\{.*\}", raw, re.DOTALL)
