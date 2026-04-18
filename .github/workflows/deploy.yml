@@ -39,6 +39,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate Vercel secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "::error::Missing GitHub secret VERCEL_TOKEN. Create a Vercel token and add it to the repository or organization Actions secrets."
+            exit 1
+          fi
+
+          if [ -z "${VERCEL_ORG_ID:-}" ]; then
+            echo "::error::Missing GitHub secret VERCEL_ORG_ID. Copy it from your Vercel project settings and add it to Actions secrets."
+            exit 1
+          fi
+
+          if [ -z "${VERCEL_PROJECT_ID:-}" ]; then
+            echo "::error::Missing GitHub secret VERCEL_PROJECT_ID. Copy it from your Vercel project settings and add it to Actions secrets."
+            exit 1
+          fi
+
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
         with:
