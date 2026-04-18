@@ -5,23 +5,47 @@ on:
     branches: [main]
 
 jobs:
+  deployment-readiness:
+    name: Check Deployment Readiness
+    runs-on: ubuntu-latest
+    outputs:
+      backend_ready: ${{ steps.readiness.outputs.backend_ready }}
+      frontend_ready: ${{ steps.readiness.outputs.frontend_ready }}
+    steps:
+      - name: Check deploy secrets
+        id: readiness
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          backend_ready=true
+          frontend_ready=true
+
+          if [ -z "${RAILWAY_TOKEN:-}" ]; then
+            echo "::notice::Skipping Railway deploy. GitHub secret RAILWAY_TOKEN is not configured."
+            backend_ready=false
+          fi
+
+          if [ -z "${VERCEL_TOKEN:-}" ] || [ -z "${VERCEL_ORG_ID:-}" ] || [ -z "${VERCEL_PROJECT_ID:-}" ]; then
+            echo "::notice::Skipping Vercel deploy. One or more Vercel GitHub secrets are not configured."
+            frontend_ready=false
+          fi
+
+          echo "backend_ready=${backend_ready}" >> "$GITHUB_OUTPUT"
+          echo "frontend_ready=${frontend_ready}" >> "$GITHUB_OUTPUT"
+
   deploy-backend:
     name: Deploy Backend to Railway
+    needs: deployment-readiness
+    if: ${{ needs.deployment-readiness.outputs.backend_ready == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
-
-      - name: Validate Railway token
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          if [ -z "${RAILWAY_TOKEN:-}" ]; then
-            echo "::error::Missing GitHub secret RAILWAY_TOKEN. Create a Railway project token with access to this project's services and add it to the repository or organization Actions secrets."
-            exit 1
-          fi
 
       - name: Deploy API
         env:
@@ -35,30 +59,11 @@ jobs:
 
   deploy-frontend:
     name: Deploy Frontend to Vercel
+    needs: deployment-readiness
+    if: ${{ needs.deployment-readiness.outputs.frontend_ready == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Validate Vercel secrets
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          if [ -z "${VERCEL_TOKEN:-}" ]; then
-            echo "::error::Missing GitHub secret VERCEL_TOKEN. Create a Vercel token and add it to the repository or organization Actions secrets."
-            exit 1
-          fi
-
-          if [ -z "${VERCEL_ORG_ID:-}" ]; then
-            echo "::error::Missing GitHub secret VERCEL_ORG_ID. Copy it from your Vercel project settings and add it to Actions secrets."
-            exit 1
-          fi
-
-          if [ -z "${VERCEL_PROJECT_ID:-}" ]; then
-            echo "::error::Missing GitHub secret VERCEL_PROJECT_ID. Copy it from your Vercel project settings and add it to Actions secrets."
-            exit 1
-          fi
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
