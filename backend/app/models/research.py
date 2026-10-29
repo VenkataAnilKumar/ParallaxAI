@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
+from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text
@@ -10,13 +11,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
-class ResearchDepth(str, Enum):
+class ResearchDepth(StrEnum):
     QUICK = "quick"
     STANDARD = "standard"
     DEEP = "deep"
 
 
-class TaskStatus(str, Enum):
+class TaskStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -24,7 +25,7 @@ class TaskStatus(str, Enum):
     CANCELED = "canceled"
 
 
-class AgentType(str, Enum):
+class AgentType(StrEnum):
     ORCHESTRATOR = "orchestrator"
     MARKET = "market"
     COMPETITOR = "competitor"
@@ -54,7 +55,7 @@ class ResearchTask(Base, UUIDMixin, TimestampMixin):
         String(20), default=TaskStatus.PENDING, nullable=False
     )
     celery_task_id: Mapped[str | None] = mapped_column(String(255))
-    agent_config: Mapped[dict | None] = mapped_column(JSONB)  # which agents to run
+    agent_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB)  # which agents to run
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_message: Mapped[str | None] = mapped_column(Text)
     tokens_used: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -90,7 +91,7 @@ class AgentRun(Base, UUIDMixin, TimestampMixin):
     tokens_used: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     sources_found: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     error_message: Mapped[str | None] = mapped_column(Text)
-    raw_output: Mapped[dict | None] = mapped_column(JSONB)
+    raw_output: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
     task: Mapped["ResearchTask"] = relationship("ResearchTask", back_populates="agent_runs")
 
@@ -113,7 +114,8 @@ class ResearchFinding(Base, UUIDMixin, TimestampMixin):
     source_title: Mapped[str | None] = mapped_column(String(512))
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(1536))
-    metadata: Mapped[dict | None] = mapped_column(JSONB)
+    # "metadata" is reserved on declarative classes; keep the column name
+    extra_metadata: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB)
 
     task: Mapped["ResearchTask"] = relationship("ResearchTask", back_populates="findings")
 

@@ -1,12 +1,13 @@
-from app.agents.research.market import MarketAgent
-from app.agents.research.competitor import CompetitorAgent
-from app.agents.research.regulatory import RegulatoryAgent
-from app.agents.research.news import NewsAgent
-from app.agents.research.financial import FinancialAgent
-from app.agents.research.sentiment import SentimentAgent
+from app.agents.base import BaseResearchAgent
 from app.agents.research.academic import AcademicAgent
+from app.agents.research.competitor import CompetitorAgent
+from app.agents.research.financial import FinancialAgent
+from app.agents.research.market import MarketAgent
+from app.agents.research.news import NewsAgent
+from app.agents.research.regulatory import RegulatoryAgent
+from app.agents.research.sentiment import SentimentAgent
 
-ALL_AGENTS = {
+ALL_AGENTS: dict[str, type[BaseResearchAgent]] = {
     "market": MarketAgent,
     "competitor": CompetitorAgent,
     "regulatory": RegulatoryAgent,

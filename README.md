@@ -222,7 +222,7 @@ docker compose up db redis -d
 
 # Backend
 cd backend
-uv sync
+uv sync --extra dev
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 
@@ -231,6 +231,7 @@ uv run celery -A app.celery_app worker --loglevel=info
 
 # Frontend (new terminal)
 cd ../frontend
+cp .env.example .env.local   # NEXT_PUBLIC_SUPABASE_* etc.
 npm install
 npm run dev
 ```

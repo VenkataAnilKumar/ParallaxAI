@@ -113,7 +113,7 @@ class BaseResearchAgent(ABC):
             system=system,
             messages=[{"role": "user", "content": user_message}],
         )
-        content = response.content[0].text
+        content = "".join(b.text for b in response.content if b.type == "text")
         tokens = response.usage.input_tokens + response.usage.output_tokens
         return content, tokens
 

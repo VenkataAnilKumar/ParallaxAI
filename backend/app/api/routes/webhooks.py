@@ -1,5 +1,7 @@
-import structlog
+from typing import Any
+
 import stripe
+import structlog
 from fastapi import APIRouter, Header, HTTPException, Request
 
 from app.config import settings
@@ -13,7 +15,7 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 async def stripe_webhook(
     request: Request,
     stripe_signature: str = Header(..., alias="stripe-signature"),
-) -> dict:
+) -> dict[str, Any]:
     payload = await request.body()
 
     try:

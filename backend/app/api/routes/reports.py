@@ -1,6 +1,6 @@
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -72,7 +72,7 @@ async def share_report(
     token = secrets.token_urlsafe(32)
     expires_at = None
     if body.expires_in_days:
-        expires_at = datetime.now(timezone.utc) + timedelta(days=body.expires_in_days)
+        expires_at = datetime.now(UTC) + timedelta(days=body.expires_in_days)
 
     share = ReportShare(
         report_id=report.id,

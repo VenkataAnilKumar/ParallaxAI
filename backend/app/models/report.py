@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -20,10 +21,10 @@ class Report(Base, UUIDMixin, TimestampMixin):
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     executive_summary: Mapped[str] = mapped_column(Text, nullable=False)
     body_markdown: Mapped[str] = mapped_column(Text, nullable=False)
-    key_findings: Mapped[list[dict]] = mapped_column(JSONB, default=list)
-    confidence_breakdown: Mapped[dict] = mapped_column(JSONB, default=dict)
-    sources: Mapped[list[dict]] = mapped_column(JSONB, default=list)
-    agent_summary: Mapped[dict] = mapped_column(JSONB, default=dict)
+    key_findings: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    confidence_breakdown: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    sources: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    agent_summary: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
 
     task: Mapped["ResearchTask"] = relationship("ResearchTask", back_populates="report")  # type: ignore[name-defined]  # noqa: F821
     shares: Mapped[list["ReportShare"]] = relationship(

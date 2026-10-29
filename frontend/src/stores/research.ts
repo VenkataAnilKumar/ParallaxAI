@@ -94,12 +94,16 @@ export const useResearchStore = create<ResearchState>()(
               s.agentStatuses[data.agent as string].status = "failed";
             }
             break;
-          case "task.completed":
-            s.updateTask(event.task_id, { status: "completed" });
+          case "task.completed": {
+            const task = s.tasks.find((t) => t.id === event.task_id);
+            if (task) task.status = "completed";
             break;
-          case "task.failed":
-            s.updateTask(event.task_id, { status: "failed" });
+          }
+          case "task.failed": {
+            const task = s.tasks.find((t) => t.id === event.task_id);
+            if (task) task.status = "failed";
             break;
+          }
         }
       }),
 

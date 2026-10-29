@@ -6,7 +6,6 @@ import remarkGfm from "remark-gfm";
 import { reports } from "@/lib/api";
 import { getToken } from "@/lib/supabase";
 import { useResearchStore } from "@/stores/research";
-import type { Report } from "@/lib/api";
 
 interface Props {
   taskId: string;
@@ -14,13 +13,11 @@ interface Props {
 
 export function ReportViewer({ taskId }: Props) {
   const { activeReport, setActiveReport } = useResearchStore();
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    let interval: ReturnType<typeof setInterval>;
 
     async function loadReport() {
       const token = await getToken();
@@ -30,7 +27,6 @@ export function ReportViewer({ taskId }: Props) {
         const report = await reports.getByTask(token, taskId);
         if (mounted) {
           setActiveReport(report);
-          setLoading(false);
           // Stop polling once report is loaded
           clearInterval(interval);
         }
@@ -40,14 +36,14 @@ export function ReportViewer({ taskId }: Props) {
     }
 
     // Poll every 5s until report appears
+    const interval = setInterval(loadReport, 5000);
     loadReport();
-    interval = setInterval(loadReport, 5000);
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, [taskId]);
+  }, [taskId, setActiveReport]);
 
   async function handleShare() {
     const token = await getToken();
@@ -57,7 +53,7 @@ export function ReportViewer({ taskId }: Props) {
       const result = await reports.share(token, activeReport.id);
       setShareUrl(result.share_url);
       await navigator.clipboard.writeText(result.share_url);
-    } catch (err) {
+    } catch {
       setError("Failed to create share link");
     }
   }
@@ -110,6 +106,7 @@ export function ReportViewer({ taskId }: Props) {
             </button>
           </div>
         </div>
+        {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
 
         {/* Confidence breakdown */}
         {Object.keys(report.confidence_breakdown).length > 0 && (

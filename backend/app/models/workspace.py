@@ -1,5 +1,5 @@
 import uuid
-from enum import Enum
+from enum import StrEnum
 
 from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
-class WorkspaceRole(str, Enum):
+class WorkspaceRole(StrEnum):
     OWNER = "owner"
     ADMIN = "admin"
     MEMBER = "member"

@@ -1,5 +1,7 @@
 """Usage tracking and rate limiting."""
 
+from datetime import UTC
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +11,7 @@ from app.models.subscription import PlanTier, Subscription
 from app.models.user import User
 from app.models.workspace import Workspace
 
-PLAN_MONTHLY_LIMITS = {
+PLAN_MONTHLY_LIMITS: dict[str, int] = {
     PlanTier.FREE: 3,
     PlanTier.STARTER: 30,
     PlanTier.PRO: 100,
@@ -32,8 +34,8 @@ async def check_research_limit(user: User, db: AsyncSession) -> None:
     limit = PLAN_MONTHLY_LIMITS.get(plan, 3)
 
     # Count tasks this calendar month
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc)
+    from datetime import datetime
+    now = datetime.now(UTC)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     count_result = await db.execute(

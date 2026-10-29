@@ -1,9 +1,9 @@
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # Repo-root .env (README setup) or backend/.env; later files take priority
+    model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
 
     # App
     APP_ENV: str = "development"
@@ -25,12 +25,6 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: str
     SUPABASE_SERVICE_KEY: str
     SUPABASE_JWT_SECRET: str = ""
-
-    @field_validator("SUPABASE_JWT_SECRET")
-    @classmethod
-    def jwt_secret_must_not_be_empty_in_production(cls, v: str, info) -> str:
-        # Validated at startup; allow empty in tests/dev
-        return v
 
     # Payments
     STRIPE_SECRET_KEY: str = ""
@@ -55,6 +49,13 @@ class Settings(BaseSettings):
         return self.DATABASE_URL.replace(
             "postgresql://", "postgresql+asyncpg://", 1
         ).replace("postgres://", "postgresql+asyncpg://", 1)
+
+    @property
+    def sync_database_url(self) -> str:
+        """psycopg2 URL for sync callers (Celery workers)."""
+        return self.DATABASE_URL.replace(
+            "postgresql://", "postgresql+psycopg2://", 1
+        ).replace("postgres://", "postgresql+psycopg2://", 1)
 
     @property
     def is_production(self) -> bool:

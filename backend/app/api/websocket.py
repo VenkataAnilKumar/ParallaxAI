@@ -1,5 +1,6 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -36,11 +37,11 @@ async def research_progress_ws(websocket: WebSocket, task_id: str) -> None:
         await redis.aclose()
 
 
-async def publish_event(redis_url: str, task_id: str, event: dict) -> None:
+async def publish_event(redis_url: str, task_id: str, event: dict[str, Any]) -> None:
     """Publish a progress event from Celery workers."""
     redis = Redis.from_url(redis_url, decode_responses=True)
     try:
-        event["timestamp"] = datetime.now(timezone.utc).isoformat()
+        event["timestamp"] = datetime.now(UTC).isoformat()
         event["task_id"] = task_id
         channel = f"{CHANNEL_PREFIX}{task_id}"
         await redis.publish(channel, json.dumps(event))

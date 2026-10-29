@@ -1,10 +1,10 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel
 
 
-class WSEventType(str, Enum):
+class WSEventType(StrEnum):
     TASK_STARTED = "task.started"
     AGENT_STARTED = "agent.started"
     AGENT_PROGRESS = "agent.progress"

@@ -39,15 +39,15 @@ parallax/
 # Start infrastructure
 docker compose up db redis -d
 
-# Backend (from /backend)
-uv sync
-uv run alembic upgrade head
+# Backend (from /backend) — reads ../.env or backend/.env
+uv sync --extra dev
+uv run alembic upgrade head   # required: the API no longer runs create_all
 uv run uvicorn app.main:app --reload --port 8000
 
 # Celery worker (new terminal)
 cd backend && uv run celery -A app.celery_app worker --loglevel=info
 
-# Frontend (from /frontend)
+# Frontend (from /frontend) — cp .env.example .env.local first
 npm install && npm run dev
 ```
 
@@ -148,6 +148,7 @@ All defined in `backend/app/config.py`. Copy `.env.example` → `.env`.
 - **ORM:** SQLAlchemy 2.0 async, models in `app/models/`
 - **Migrations:** Alembic — `uv run alembic upgrade head`
 - **New migration:** `uv run alembic revision --autogenerate -m "description"`
+- **Initial migration** `0001_initial_schema` also runs `CREATE EXTENSION IF NOT EXISTS vector`
 - **pgvector:** ResearchFinding.embedding is Vector(1536) — requires `CREATE EXTENSION vector`
 
 ---
@@ -161,7 +162,8 @@ uv run pytest tests/test_search.py    # search service tests
 uv run pytest --cov=app               # with coverage
 ```
 
-Tests use a real PostgreSQL database (`parallax_test`). No mocking of DB.
+Tests use a real PostgreSQL database (`parallax_test`) and Redis. No mocking of DB.
+`tests/test_pipeline.py` runs the full Celery task with Claude + search stubbed.
 
 ---
 

@@ -1,10 +1,12 @@
 """Stripe billing event handlers."""
 
-import structlog
+from typing import Any
+
 import stripe
+import structlog
 
 from app.config import settings
-from app.models.subscription import PlanTier, Subscription, SubscriptionStatus
+from app.models.subscription import PlanTier
 
 log = structlog.get_logger()
 
@@ -17,7 +19,7 @@ PRICE_TO_PLAN: dict[str, str] = {
 }
 
 
-async def handle_stripe_event(event: dict) -> None:
+async def handle_stripe_event(event: dict[str, Any]) -> None:
     event_type = event["type"]
     data = event["data"]["object"]
 
@@ -33,13 +35,13 @@ async def handle_stripe_event(event: dict) -> None:
         log.debug("stripe_event_ignored", event_type=event_type)
 
 
-async def _handle_checkout_completed(session: dict) -> None:
+async def _handle_checkout_completed(session: dict[str, Any]) -> None:
     """Provision subscription after successful checkout."""
     log.info("checkout_completed", session_id=session.get("id"))
     # Implementation: match customer to workspace, create Subscription record
 
 
-async def _handle_subscription_updated(subscription: dict) -> None:
+async def _handle_subscription_updated(subscription: dict[str, Any]) -> None:
     """Update subscription plan and status."""
     price_id = subscription["items"]["data"][0]["price"]["id"]
     plan = PRICE_TO_PLAN.get(price_id, PlanTier.FREE)
@@ -47,11 +49,11 @@ async def _handle_subscription_updated(subscription: dict) -> None:
     log.info("subscription_updated", plan=plan, status=status)
 
 
-async def _handle_subscription_canceled(subscription: dict) -> None:
+async def _handle_subscription_canceled(subscription: dict[str, Any]) -> None:
     """Downgrade to free plan on cancellation."""
     log.info("subscription_canceled", subscription_id=subscription.get("id"))
 
 
-async def _handle_payment_failed(invoice: dict) -> None:
+async def _handle_payment_failed(invoice: dict[str, Any]) -> None:
     """Mark subscription as past_due."""
     log.warning("payment_failed", invoice_id=invoice.get("id"))
