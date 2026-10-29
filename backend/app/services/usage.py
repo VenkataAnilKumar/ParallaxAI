@@ -11,12 +11,13 @@ from app.models.subscription import PlanTier, Subscription
 from app.models.user import User
 from app.models.workspace import Workspace
 
-PLAN_MONTHLY_LIMITS: dict[str, int] = {
+# None = unlimited
+PLAN_MONTHLY_LIMITS: dict[str, int | None] = {
     PlanTier.FREE: 3,
     PlanTier.STARTER: 30,
     PlanTier.PRO: 100,
-    PlanTier.TEAM: 500,
-    PlanTier.ENTERPRISE: 999_999,
+    PlanTier.TEAM: None,
+    PlanTier.ENTERPRISE: None,
 }
 
 
@@ -31,7 +32,9 @@ async def check_research_limit(user: User, db: AsyncSession) -> None:
     )
     subscription = result.scalar_one_or_none()
     plan = subscription.plan if subscription else PlanTier.FREE
-    limit = PLAN_MONTHLY_LIMITS.get(plan, 3)
+    limit = PLAN_MONTHLY_LIMITS.get(plan, PLAN_MONTHLY_LIMITS[PlanTier.FREE])
+    if limit is None:
+        return
 
     # Count tasks this calendar month
     from datetime import datetime
