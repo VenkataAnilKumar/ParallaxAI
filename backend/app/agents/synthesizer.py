@@ -71,7 +71,9 @@ Be direct about what is known with high confidence vs. what is uncertain."""
         raw, tokens = self._call_claude(self.system_prompt, user_message)
         output = self.parse_response(raw, inp)
         output.tokens_used = tokens
-        output.raw_response = raw
+        # parse_response stores the normalized JSON (with body_markdown) on success
+        if not output.raw_response:
+            output.raw_response = raw
         return output
 
     def parse_response(self, raw: str, inp: AgentInput) -> AgentOutput:
@@ -82,7 +84,9 @@ Be direct about what is known with high confidence vs. what is uncertain."""
                 # Build markdown body from sections
                 sections = data.get("body_sections", [])
                 body_md = "\n\n".join(
-                    f"## {s['heading']}\n\n{s['content']}" for s in sections
+                    f"## {s.get('heading', '')}\n\n{s.get('content', '')}"
+                    for s in sections
+                    if isinstance(s, dict)
                 )
                 return AgentOutput(
                     agent_type=self.agent_type,

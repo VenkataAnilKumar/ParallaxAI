@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 
 import structlog
+from exa_py import Exa
+from tavily import TavilyClient
 
 from app.config import settings
 
@@ -23,7 +25,6 @@ def search_tavily(query: str, max_results: int = 8) -> list[SearchResult]:
     if not settings.TAVILY_API_KEY:
         return []
     try:
-        from tavily import TavilyClient
         client = TavilyClient(api_key=settings.TAVILY_API_KEY)
         response = client.search(
             query=query,
@@ -51,13 +52,11 @@ def search_exa(query: str, max_results: int = 5) -> list[SearchResult]:
     if not settings.EXA_API_KEY:
         return []
     try:
-        from exa_py import Exa
         client = Exa(api_key=settings.EXA_API_KEY)
         response = client.search_and_contents(
             query=query,
             num_results=max_results,
             text={"max_characters": 800},
-            use_autoprompt=True,
         )
         return [
             SearchResult(

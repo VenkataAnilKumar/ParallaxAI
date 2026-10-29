@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.research import ResearchDepth, TaskStatus
+from app.models.research import ResearchDepth
 
 
 class ResearchCreateRequest(BaseModel):

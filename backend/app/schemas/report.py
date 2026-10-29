@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -19,8 +20,8 @@ class ReportResponse(BaseModel):
     body_markdown: str
     key_findings: list[KeyFinding]
     confidence_breakdown: dict[str, float]
-    sources: list[dict]
-    agent_summary: dict
+    sources: list[dict[str, Any]]
+    agent_summary: dict[str, Any]
     created_at: datetime
 
     model_config = {"from_attributes": True}

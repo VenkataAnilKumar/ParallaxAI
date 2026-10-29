@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.celery_app import celery_app
 from app.core.auth import CurrentUser
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.database import get_db
@@ -38,12 +39,12 @@ async def create_research(
         agent_config={"agents": body.agents} if body.agents else None,
     )
     db.add(task)
-    await db.flush()
+    # Commit before dispatching so the worker can see the row
+    await db.commit()
 
-    # Dispatch to Celery
     celery_result = run_research_task.delay(str(task.id))
     task.celery_task_id = celery_result.id
-    await db.flush()
+    await db.commit()
 
     await db.refresh(task, ["agent_runs"])
     return ResearchTaskResponse.model_validate(task)
@@ -114,7 +115,8 @@ async def cancel_research(
         raise NotFoundError("ResearchTask", str(task_id))
     if task.user_id != current_user.id:
         raise ForbiddenError()
-    if task.status == TaskStatus.RUNNING and task.celery_task_id:
-        from app.celery_app import celery_app
+    if task.status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
+        return
+    if task.celery_task_id:
         celery_app.control.revoke(task.celery_task_id, terminate=True)
     task.status = TaskStatus.CANCELED

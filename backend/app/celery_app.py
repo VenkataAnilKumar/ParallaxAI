@@ -19,9 +19,6 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
     result_expires=86400,  # 24 hours
-    task_routes={
-        "app.tasks.research.*": {"queue": "research"},
-    },
     task_time_limit=600,       # 10 min hard limit
     task_soft_time_limit=540,  # 9 min soft limit (allows cleanup)
 )

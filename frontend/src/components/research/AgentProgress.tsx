@@ -38,14 +38,14 @@ export function AgentProgress({ taskId }: Props) {
       const socket = new ResearchSocket(taskId);
       socketRef.current = socket;
 
-      socket.on("task.started", (ev) => { if (mounted) setTaskStatus("running"); });
-      socket.on("task.completed", (ev) => {
+      socket.on("task.started", () => { if (mounted) setTaskStatus("running"); });
+      socket.on("task.completed", () => {
         if (mounted) {
           setTaskStatus("completed");
           updateTask(taskId, { status: "completed" });
         }
       });
-      socket.on("task.failed", (ev) => {
+      socket.on("task.failed", () => {
         if (mounted) setTaskStatus("failed");
       });
 
@@ -64,7 +64,7 @@ export function AgentProgress({ taskId }: Props) {
       mounted = false;
       socketRef.current?.disconnect();
     };
-  }, [taskId]);
+  }, [taskId, handleWSEvent, updateTask, setActiveTask]);
 
   const agentList = Object.values(agentStatuses);
   const isRunning = taskStatus === "running" || taskStatus === "pending";

@@ -23,7 +23,7 @@ export function RecentResearch() {
       }
     }
     load();
-  }, []);
+  }, [setTasks, setIsLoadingList]);
 
   if (isLoadingList) {
     return (

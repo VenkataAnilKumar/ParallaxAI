@@ -1,9 +1,9 @@
+from app.schemas.report import ReportResponse, ShareReportRequest, ShareReportResponse
 from app.schemas.research import (
     ResearchCreateRequest,
-    ResearchTaskResponse,
     ResearchTaskListResponse,
+    ResearchTaskResponse,
 )
-from app.schemas.report import ReportResponse, ShareReportRequest, ShareReportResponse
 from app.schemas.user import UserResponse
 from app.schemas.websocket import WSEvent
 

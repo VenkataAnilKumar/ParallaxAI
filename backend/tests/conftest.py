@@ -1,29 +1,44 @@
 """Pytest configuration and shared fixtures."""
 
+import os
 import uuid
 from collections.abc import AsyncGenerator
 
-import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+# Settings are read at import time, so provide safe defaults before importing app.
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql://parallax:parallax@localhost:5432/parallax_test"
+)
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-tests-only")
+os.environ.setdefault("ANTHROPIC_API_KEY", "sk-ant-test")
+os.environ.setdefault("SUPABASE_URL", "http://localhost:54321")
+os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
+os.environ.setdefault("SUPABASE_SERVICE_KEY", "test-service-key")
+os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret")
 
-from app.database import get_db
-from app.main import app
-from app.models import Base
+import pytest  # noqa: E402
+from httpx import ASGITransport, AsyncClient  # noqa: E402
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.ext.asyncio import (  # noqa: E402
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+)
 
-TEST_DATABASE_URL = "postgresql+asyncpg://parallax:parallax@localhost:5432/parallax_test"
+from app.config import settings  # noqa: E402
+from app.core.auth import get_current_user  # noqa: E402
+from app.database import get_db  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models import Base  # noqa: E402
+from app.models.user import User  # noqa: E402
 
 
 @pytest.fixture(scope="session")
-def event_loop_policy():
-    import asyncio
-    return asyncio.DefaultEventLoopPolicy()
-
-
-@pytest.fixture(scope="session")
-async def engine():
-    _engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+async def engine() -> AsyncGenerator[AsyncEngine, None]:
+    _engine = create_async_engine(settings.async_database_url, echo=False)
     async with _engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     yield _engine
     async with _engine.begin() as conn:
@@ -32,16 +47,36 @@ async def engine():
 
 
 @pytest.fixture
-async def db(engine) -> AsyncGenerator[AsyncSession, None]:
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with session_factory() as session:
-        yield session
-        await session.rollback()
+async def db(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    """Session bound to an outer transaction that is rolled back after each test.
+
+    Commits made by application code become savepoints, so tests stay isolated.
+    """
+    async with engine.connect() as conn:
+        trans = await conn.begin()
+        session = AsyncSession(
+            bind=conn,
+            expire_on_commit=False,
+            join_transaction_mode="create_savepoint",
+        )
+        try:
+            yield session
+        finally:
+            await session.close()
+            await trans.rollback()
+
+
+@pytest.fixture
+async def user(db: AsyncSession) -> User:
+    u = User(id=uuid.uuid4(), email=f"{uuid.uuid4().hex}@parallax.app", full_name="Test")
+    db.add(u)
+    await db.flush()
+    return u
 
 
 @pytest.fixture
 async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    async def override_get_db():
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db
 
     app.dependency_overrides[get_db] = override_get_db
@@ -53,5 +88,7 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest.fixture
-def mock_user_id() -> uuid.UUID:
-    return uuid.uuid4()
+async def auth_client(client: AsyncClient, user: User) -> AsyncClient:
+    """Client authenticated as `user` (bypasses Supabase JWT verification)."""
+    app.dependency_overrides[get_current_user] = lambda: user
+    return client

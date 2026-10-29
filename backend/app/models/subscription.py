@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
-class PlanTier(str, Enum):
+class PlanTier(StrEnum):
     FREE = "free"
     STARTER = "starter"
     PRO = "pro"
@@ -17,7 +17,7 @@ class PlanTier(str, Enum):
     ENTERPRISE = "enterprise"
 
 
-class SubscriptionStatus(str, Enum):
+class SubscriptionStatus(StrEnum):
     ACTIVE = "active"
     PAST_DUE = "past_due"
     CANCELED = "canceled"

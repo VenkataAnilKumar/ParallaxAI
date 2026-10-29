@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { Route } from "next";
 import { clsx } from "clsx";
 
-const navItems = [
+const navItems: { href: Route; label: string; icon: string }[] = [
   { href: "/app", label: "New Research", icon: "✦" },
   { href: "/app/history", label: "History", icon: "◷" },
   { href: "/app/settings", label: "Settings", icon: "◈" },
@@ -43,7 +44,7 @@ export function Sidebar() {
         <div className="rounded-lg bg-brand-900/20 border border-brand-800 p-3">
           <p className="text-xs font-medium text-brand-300">Free Plan</p>
           <p className="text-xs text-gray-500 mt-0.5">3 tasks/month</p>
-          <Link href="/app/settings/billing" className="mt-2 block text-xs text-brand-400 hover:text-brand-300">
+          <Link href="/app/settings" className="mt-2 block text-xs text-brand-400 hover:text-brand-300">
             Upgrade →
           </Link>
         </div>
